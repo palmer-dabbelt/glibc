@@ -22,6 +22,7 @@
 
 #include <features.h>
 #include <stddef.h>
+#include <errno.h>
 #ifdef __has_include
 # if __has_include (<asm/hwprobe.h>)
 #  include <asm/hwprobe.h>
@@ -78,5 +79,28 @@ typedef int (*__riscv_hwprobe_t) (struct riscv_hwprobe *__pairs, size_t __pair_c
      __fortified_attr_access (__read_only__, 4, 3);
 
 __END_DECLS
+
+/* Helper function usable from ifunc selectors that probes a single key. */
+static inline int __riscv_hwprobe_one(__riscv_hwprobe_t hwprobe_func,
+                                      signed long long int key,
+                                      unsigned long long int *value)
+{
+  struct riscv_hwprobe pair;
+  int rc;
+
+  if (!hwprobe_func)
+    return ENOSYS;
+
+  pair.key = key;
+  rc = hwprobe_func(&pair, 1, 0, NULL, 0);
+  if (rc)
+    return rc;
+
+  if (pair.key < 0)
+    return ENOENT;
+
+  *value = pair.value;
+  return 0;
+}
 
 #endif /* sys/hwprobe.h */
