@@ -27,9 +27,20 @@ int __riscv_hwprobe (struct riscv_hwprobe *__pairs, size_t __pair_count,
 		     unsigned int __flags)
 {
   int r;
+  __riscv_hwprobe_t vdso_hwprobe =
+    (__riscv_hwprobe_t)GLRO(dl_vdso_riscv_hwprobe);
 
-  r = INTERNAL_SYSCALL_CALL (riscv_hwprobe, 5, __pairs, __pair_count,
-                             __cpu_count, __cpus, __flags);
+  if (vdso_hwprobe != NULL)
+    {
+      r = INTERNAL_VSYSCALL_CALL (vdso_hwprobe, 5, __pairs, __pair_count,
+                                  __cpu_count, __cpus, __flags);
+    }
+  else
+    {
+      r = INTERNAL_SYSCALL_CALL (riscv_hwprobe, 5, __pairs, __pair_count,
+                                 __cpu_count, __cpus, __flags);
+
+    }
 
   /* Negate negative errno values to match pthreads API. */
   return -r;
